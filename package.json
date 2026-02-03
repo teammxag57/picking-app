@@ -36,6 +36,7 @@
     "@shopify/polaris": "^13.9.5",
     "@shopify/shopify-app-react-router": "^1.1.1",
     "@shopify/shopify-app-session-storage-prisma": "^8.0.0",
+    "@vercel/react-router": "^1.2.5",
     "@zxing/browser": "^0.1.5",
     "html5-qrcode": "^2.3.8",
     "isbot": "^5.1.31",
