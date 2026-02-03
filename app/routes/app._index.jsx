@@ -1,4 +1,4 @@
-import { json } from "react-router";
+import { json } from "@shopify/remix-oxygen";
 import { useLoaderData } from "react-router";
 import { Page, Card, Text, BlockStack } from "@shopify/polaris";
 import { authenticate } from "~/shopify.server";
