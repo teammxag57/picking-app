@@ -2,7 +2,7 @@
 
 client_id = "7833aa418002f2280ed9555bb7076ffc"
 name = "Picking-app"
-application_url = "https://picking-app-beryl.vercel.app"
+application_url = "https://picking-app-git.vercel.app"
 embedded = true
 
 [build]
@@ -30,4 +30,4 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://picking-app-beryl.vercel.app/auth/callback" ]
+redirect_urls = [ "https://picking-app-git.vercel.app/auth/callback" ]
