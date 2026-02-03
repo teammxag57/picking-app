@@ -8,7 +8,7 @@ const shopify = shopifyApp({
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.October25,
   scopes: (process.env.SCOPES || "").split(",").map(s => s.trim()).filter(Boolean),
-  appUrl: process.env.SHOPIFY_APP_URL || "https://picking-app-beryl.vercel.app",
+  appUrl: process.env.SHOPIFY_APP_URL || "https://picking-app-git.vercel.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
 
