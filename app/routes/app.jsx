@@ -9,8 +9,15 @@ import { authenticate } from "../shopify.server";
 export const runtime = "nodejs";
 
 export const loader = async ({ request }) => {
+  console.log("ENV", {
+    hasKey: !!process.env.SHOPIFY_API_KEY,
+    hasSecret: !!process.env.SHOPIFY_API_SECRET,
+    secretLen: process.env.SHOPIFY_API_SECRET?.length,
+  });
+
   const result = await authenticate.admin(request);
   if (result instanceof Response) return result;
+
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
