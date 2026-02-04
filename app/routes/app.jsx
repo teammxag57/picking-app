@@ -6,6 +6,8 @@ import enTranslations from "@shopify/polaris/locales/en.json";
 
 import { authenticate } from "../shopify.server";
 
+export const runtime = "nodejs";
+
 export const loader = async ({ request }) => {
   const result = await authenticate.admin(request);
   if (result instanceof Response) return result;
