@@ -8,8 +8,13 @@ export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
   const url = new URL(request.url);
+
+  // ✅ filtros via querystring
   const statusFilter = String(url.searchParams.get("status") || "").trim();
   // statusFilter: "" | "pending" | "in_progress"
+
+  const fulfillmentFilter = String(url.searchParams.get("fulfillment") || "").trim();
+  // fulfillmentFilter: "" | "fulfilled" | "unfulfilled"
 
   const response = await admin.graphql(`
     query OrdersWithPickingStatus {
@@ -32,7 +37,7 @@ export const loader = async ({ request }) => {
 
   const raw = data?.orders?.nodes || [];
 
-  // Só encomendas com pelo menos 1 FulfillmentOrder OPEN (fulfillable)
+  // ✅ Só encomendas com pelo menos 1 FulfillmentOrder OPEN (fulfillable)
   const fulfillable = raw.filter((o) =>
     (o.fulfillmentOrders?.nodes || []).some((fo) => fo.status === "OPEN")
   );
@@ -47,18 +52,25 @@ export const loader = async ({ request }) => {
     pickingStatus: order.metafield?.value || null,
   }));
 
-  // ✅ Filtros: Todos / Pending / In progress
+  // ✅ Filtros picking: Todos / Pending / In progress
   if (statusFilter === "pending") {
     orders = orders.filter((o) => o.pickingStatus === "pending");
   } else if (statusFilter === "in_progress") {
     orders = orders.filter((o) => o.pickingStatus === "in_progress");
   }
 
+  // ✅ Filtro fulfillment: Todos / Fulfilled / Unfulfilled
+  if (fulfillmentFilter === "fulfilled") {
+    orders = orders.filter((o) => o.fulfillmentStatus === "FULFILLED");
+  } else if (fulfillmentFilter === "unfulfilled") {
+    orders = orders.filter((o) => o.fulfillmentStatus !== "FULFILLED");
+  }
+
   // ✅ Ordenação: pending primeiro, depois in_progress, depois outros (null/done)
   const rank = { pending: 0, in_progress: 1, done: 2 };
   orders.sort((a, b) => (rank[a.pickingStatus] ?? 99) - (rank[b.pickingStatus] ?? 99));
 
-  return { orders, statusFilter };
+  return { orders, statusFilter, fulfillmentFilter };
 };
 
 function toneForPicking(status) {
@@ -75,7 +87,7 @@ function toneForFulfillment(status) {
 
 /* ---------------- PAGE ---------------- */
 export default function OrdersPage() {
-  const { orders, statusFilter } = useLoaderData();
+  const { orders, statusFilter, fulfillmentFilter } = useLoaderData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const host = searchParams.get("host");
@@ -97,6 +109,13 @@ export default function OrdersPage() {
   const filterLabel =
     !statusFilter ? "Todos" : statusFilter === "pending" ? "Pending" : "In progress";
 
+  const fulfillmentLabel =
+    !fulfillmentFilter
+      ? "Todos fulfillment"
+      : fulfillmentFilter === "fulfilled"
+      ? "Fulfilled"
+      : "Unfulfilled";
+
   return (
     <Page title="Orders">
       <BlockStack gap="400">
@@ -109,7 +128,7 @@ export default function OrdersPage() {
                   Filtros
                 </Text>
 
-                {/* ✅ Web Components: garantir render com slots */}
+                {/* ✅ Picking filter buttons */}
                 <s-button-group>
                   <s-button
                     slot={!statusFilter ? "primary-action" : "secondary-actions"}
@@ -139,9 +158,34 @@ export default function OrdersPage() {
                 </s-button-group>
               </InlineStack>
 
+              {/* ✅ Fulfillment filter buttons */}
+              <InlineStack gap="200" style={{ marginTop: 12 }}>
+                <s-button
+                  variant={!fulfillmentFilter ? "primary" : "secondary"}
+                  onClick={() => go("/app/orders")}
+                >
+                  Todos fulfillment
+                </s-button>
+
+                <s-button
+                  variant={fulfillmentFilter === "fulfilled" ? "primary" : "secondary"}
+                  onClick={() => go("/app/orders?fulfillment=fulfilled")}
+                >
+                  Fulfilled
+                </s-button>
+
+                <s-button
+                  variant={fulfillmentFilter === "unfulfilled" ? "primary" : "secondary"}
+                  onClick={() => go("/app/orders?fulfillment=unfulfilled")}
+                >
+                  Unfulfilled
+                </s-button>
+              </InlineStack>
+
               <div style={{ marginTop: 8 }}>
                 <s-text tone="subdued">
-                  {filterLabel}: <strong>{orders.length}</strong> encomenda(s)
+                  {filterLabel} / {fulfillmentLabel}: <strong>{orders.length}</strong>{" "}
+                  encomenda(s)
                 </s-text>
               </div>
             </div>
