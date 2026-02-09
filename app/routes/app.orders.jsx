@@ -196,68 +196,65 @@ export default function OrdersPage() {
               </div>
 
               {/* ✅ 2º filtro: Picking */}
-              <div style={{ marginTop: 14 }}>
-                <Text as="p" tone="subdued">
-                  Picking
-                </Text>
+<div style={{ marginTop: 14 }}>
+  <Text as="p" tone="subdued">
+    Picking
+  </Text>
 
-                <s-button-group>
-                  <s-button
-                    slot={!statusFilter ? "primary-action" : "secondary-actions"}
-                    variant={!statusFilter ? "primary" : "secondary"}
-                    onClick={() =>
-                      go("/app/orders", {
-                        fulfillment: fulfillmentFilter || "",
-                        // limpa picking
-                      })
-                    }
-                  >
-                    Todos
-                  </s-button>
+  <s-button-group>
+    <s-button
+      slot={!statusFilter ? "primary-action" : "secondary-actions"}
+      variant={!statusFilter ? "primary" : "secondary"}
+      onClick={() =>
+        go("/app/orders", {
+          fulfillment: fulfillmentFilter || "",
+          // limpa picking
+        })
+      }
+    >
+      Todos
+    </s-button>
 
-                  <s-button
-                    slot={statusFilter === "pending" ? "primary-action" : "secondary-actions"}
-                    variant={statusFilter === "pending" ? "primary" : "secondary"}
-                    onClick={() =>
-                      go("/app/orders", {
-                        fulfillment: fulfillmentFilter || "",
-                        status: "pending",
-                      })
-                    }
-                  >
-                    Pending
-                  </s-button>
+    <s-button
+      slot={statusFilter === "pending" ? "primary-action" : "secondary-actions"}
+      variant={statusFilter === "pending" ? "primary" : "secondary"}
+      onClick={() =>
+        go("/app/orders", {
+          fulfillment: fulfillmentFilter || "",
+          status: "pending",
+        })
+      }
+    >
+      Pending
+    </s-button>
 
-                  <s-button
-                    slot={
-                      statusFilter === "in_progress" ? "primary-action" : "secondary-actions"
-                    }
-                    variant={statusFilter === "in_progress" ? "primary" : "secondary"}
-                    onClick={() =>
-                      go("/app/orders", {
-                        fulfillment: fulfillmentFilter || "",
-                        status: "in_progress",
-                      })
-                    }
-                  >
-                    In progress
-                  </s-button>
+    <s-button
+      slot={statusFilter === "in_progress" ? "primary-action" : "secondary-actions"}
+      variant={statusFilter === "in_progress" ? "primary" : "secondary"}
+      onClick={() =>
+        go("/app/orders", {
+          fulfillment: fulfillmentFilter || "",
+          status: "in_progress",
+        })
+      }
+    >
+      In progress
+    </s-button>
 
-                  <s-button
-                    slot={statusFilter === "empty" ? "primary-action" : "secondary-actions"}
-                    variant={statusFilter === "empty" ? "primary" : "secondary"}
-                    onClick={() =>
-                      go("/app/orders", {
-                        fulfillment: fulfillmentFilter || "",
-                        status: "empty",
-                      })
-                    }
-                  >
-                    Sem tag
-                  </s-button>
-                </s-button-group>
-              </div>
-
+    <s-button
+      slot={statusFilter === "empty" ? "primary-action" : "secondary-actions"}
+      variant={statusFilter === "empty" ? "primary" : "secondary"}
+      onClick={() =>
+        go("/app/orders", {
+          fulfillment: fulfillmentFilter || "",
+          status: "empty",
+        })
+      }
+    >
+      Sem tag
+    </s-button>
+  </s-button-group>
+</div>
               <div style={{ marginTop: 10 }}>
                 <s-text tone="subdued">
                   {fulfillmentLabel} / {pickingLabel}: <strong>{orders.length}</strong>{" "}
