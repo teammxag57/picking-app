@@ -29,6 +29,7 @@ export default function App() {
       <PolarisProvider i18n={enTranslations}>
         <s-app-nav>
           <s-link href="/app/orders">Orders</s-link>
+          <s-link href="/app/bin-locations/assign">Bin Location</s-link>
         </s-app-nav>
 
         <Outlet />
