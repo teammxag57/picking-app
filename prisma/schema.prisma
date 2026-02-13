@@ -40,3 +40,35 @@ model PickedItem {
 
   @@unique([orderId, variantId])
 }
+
+// Nova tabela: bins (localizações físicas)
+model BinLocation {
+  id        String   @id @default(cuid())
+  shopId    String   // usar o shop domain (session.shop)
+  code      String   // código lido no barcode do bin
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants  VariantBin[]
+
+  @@unique([shopId, code])
+  @@index([shopId])
+}
+
+// Nova tabela: associação Variant -> Bin (1 bin por variant)
+model VariantBin {
+  id            String      @id @default(cuid())
+  shopId        String
+  variantGid    String      // gid://shopify/ProductVariant/...
+  binLocationId String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  bin           BinLocation @relation(fields: [binLocationId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, variantGid])
+  @@index([shopId])
+  @@index([binLocationId])
+}
+
