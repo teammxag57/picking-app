@@ -205,21 +205,21 @@ export default function OrderDetailPage() {
       frequency: 880,
       duration: 0.07,
       type: "sine",
-      volume: 0.12,
+      volume: 0.35,
     });
 
     errorBeepRef.current = makeBeep({
       frequency: 220,
       duration: 0.12,
       type: "square",
-      volume: 0.1,
+      volume: 0.45,
     });
 
     completeBeepRef.current = makeBeep({
       frequency: 1320,
       duration: 0.1,
       type: "triangle",
-      volume: 0.12,
+      volume: 0.35,
     });
 
     // cleanup: fechar AudioContexts
