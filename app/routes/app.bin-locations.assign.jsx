@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Page, Card, BlockStack, Text, TextField, Button, Banner, Thumbnail } from "@shopify/polaris";
-import { useFetcher } from "@remix-run/react";
+import {
+  Page,
+  Card,
+  BlockStack,
+  Text,
+  TextField,
+  Button,
+  Banner,
+  Thumbnail,
+} from "@shopify/polaris";
+import { useFetcher } from "react-router-dom";
 
 export default function AssignBinPage() {
   const fetcherVariant = useFetcher();
