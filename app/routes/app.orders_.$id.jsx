@@ -121,12 +121,14 @@ function toneForPicking(status) {
  * - Funciona bem quando existe "user gesture" (ex: clique no botão Scan)
  */
 function makeBeep({ frequency = 880, duration = 0.08, type = "sine", volume = 0.12 } = {}) {
+  if (typeof window === "undefined") return null; // ✅ SSR safe
+
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
 
     const ctx = new AudioCtx();
-
+    // ...
     const ensureRunning = async () => {
       if (ctx.state === "suspended") await ctx.resume();
     };
