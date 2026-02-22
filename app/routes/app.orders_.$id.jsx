@@ -115,6 +115,50 @@ function toneForPicking(status) {
   return "info";
 }
 
+/**
+ * Beep helper (Web Audio API)
+ * - Não precisa de ficheiros mp3
+ * - Funciona bem quando existe "user gesture" (ex: clique no botão Scan)
+ */
+function makeBeep({ frequency = 880, duration = 0.08, type = "sine", volume = 0.12 } = {}) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+
+    const ctx = new AudioCtx();
+
+    const ensureRunning = async () => {
+      if (ctx.state === "suspended") await ctx.resume();
+    };
+
+    const play = async () => {
+      await ensureRunning();
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = frequency;
+
+      // envelope para evitar "click"
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    };
+
+    return { play, ctx };
+  } catch {
+    return null;
+  }
+}
+
 /* ---------------- PAGE ---------------- */
 export default function OrderDetailPage() {
   const { order } = useLoaderData();
@@ -148,9 +192,45 @@ export default function OrderDetailPage() {
   // lock para impedir duplo submit (evita loops)
   const submitLockRef = useRef(false);
 
-  const backUrl = host
-    ? `/app/orders?host=${encodeURIComponent(host)}`
-    : "/app/orders";
+  // ---- BEEPS ----
+  const okBeepRef = useRef(null);
+  const errorBeepRef = useRef(null);
+  const completeBeepRef = useRef(null);
+
+  useEffect(() => {
+    // 3 sons diferentes: ok / erro / completo
+    okBeepRef.current = makeBeep({
+      frequency: 880,
+      duration: 0.07,
+      type: "sine",
+      volume: 0.12,
+    });
+
+    errorBeepRef.current = makeBeep({
+      frequency: 220,
+      duration: 0.12,
+      type: "square",
+      volume: 0.1,
+    });
+
+    completeBeepRef.current = makeBeep({
+      frequency: 1320,
+      duration: 0.1,
+      type: "triangle",
+      volume: 0.12,
+    });
+
+    // cleanup: fechar AudioContexts
+    return () => {
+      [okBeepRef.current, errorBeepRef.current, completeBeepRef.current].forEach((b) => {
+        try {
+          b?.ctx?.close?.();
+        } catch {}
+      });
+    };
+  }, []);
+
+  const backUrl = host ? `/app/orders?host=${encodeURIComponent(host)}` : "/app/orders";
 
   const fulfillmentTone = toneForFulfillment(order.displayFulfillmentStatus);
   const pickingStatus = order.metafield?.value || "pending";
@@ -181,6 +261,7 @@ export default function OrderDetailPage() {
     const match = lineItems.find((item) => item.variant?.barcode === scannedCode);
 
     if (!match) {
+      errorBeepRef.current?.play?.();
       window.shopify?.toast?.show?.("⚠️ Produto não encontrado nesta encomenda", {
         isError: true,
       });
@@ -192,8 +273,10 @@ export default function OrderDetailPage() {
       const next = Math.min(current + 1, match.quantity);
 
       if (next >= match.quantity) {
+        completeBeepRef.current?.play?.();
         window.shopify?.toast?.show?.(`✅ ${match.title} (completo)`);
       } else {
+        okBeepRef.current?.play?.();
         window.shopify?.toast?.show?.(`➕ ${match.title} (${next}/${match.quantity})`);
       }
 
@@ -207,6 +290,9 @@ export default function OrderDetailPage() {
     setScanLoading(true);
 
     try {
+      // (Opcional mas recomendado) garantir que o áudio está desbloqueado
+      await okBeepRef.current?.ctx?.resume?.();
+
       if (!window.shopify?.scanner?.capture) {
         throw new Error("Scanner API not available");
       }
@@ -215,9 +301,7 @@ export default function OrderDetailPage() {
       if (payload?.data) processScannedCode(payload.data);
     } catch (err) {
       console.warn("Scanner error:", err);
-      setScannerError(
-        "Scanner não disponível neste dispositivo. Usa um scanner físico ou digita o código."
-      );
+      setScannerError("Scanner não disponível neste dispositivo. Usa um scanner físico ou digita o código.");
       inputRef.current?.focus();
     } finally {
       setScanLoading(false);
@@ -235,9 +319,7 @@ export default function OrderDetailPage() {
 
   /* ---------- METRICS ---------- */
   const totalLines = lineItems.length;
-  const completedLines = lineItems.filter(
-    (li) => (pickedQty[li.id] || 0) >= li.quantity
-  ).length;
+  const completedLines = lineItems.filter((li) => (pickedQty[li.id] || 0) >= li.quantity).length;
 
   const totalUnits = lineItems.reduce((sum, li) => sum + (li.quantity || 0), 0);
   const pickedUnits = lineItems.reduce(
@@ -307,9 +389,7 @@ export default function OrderDetailPage() {
   }, [submitStatus, marking, closeSModal]);
 
   /* ---------- SHOW BUTTONS ---------- */
-  const showMarkInProgressButton =
-    allComplete && pickingStatus !== "in_progress" && !markedNow;
-
+  const showMarkInProgressButton = allComplete && pickingStatus !== "in_progress" && !markedNow;
   const showResetPendingButton = pickingStatus !== "pending";
 
   /* ---------- FEEDBACK ---------- */
@@ -483,8 +563,7 @@ export default function OrderDetailPage() {
         {noBarcodeCount > 0 && (
           <Banner tone="info">
             <p>
-              Existem <strong>{noBarcodeCount}</strong> produto(s) sem barcode nesta
-              encomenda.
+              Existem <strong>{noBarcodeCount}</strong> produto(s) sem barcode nesta encomenda.
             </p>
           </Banner>
         )}
@@ -495,11 +574,7 @@ export default function OrderDetailPage() {
             <div style={{ padding: 16 }}>
               <s-grid gridTemplateColumns="repeat(2, 1fr)" gap="small">
                 <s-grid-item gridColumn="span 2">
-                  <s-stack
-                    direction="inline"
-                    justifyContent="space-between"
-                    alignItems="center"
-                  >
+                  <s-stack direction="inline" justifyContent="space-between" alignItems="center">
                     <s-stack gap="extra-small">
                       <s-text variant="heading-md">Resumo</s-text>
                       <s-text tone="subdued">
@@ -569,20 +644,14 @@ export default function OrderDetailPage() {
 
                       <s-table-cell>
                         <div style={{ width: 44 }}>
-                          <s-thumbnail
-                            alt={item.image?.altText || item.title}
-                            src={item.image?.url}
-                          >
+                          <s-thumbnail alt={item.image?.altText || item.title} src={item.image?.url}>
                             📦
                           </s-thumbnail>
                         </div>
                       </s-table-cell>
 
                       <s-table-cell>
-                        <s-text
-                          variant="heading-sm"
-                          tone={isComplete ? "success" : "default"}
-                        >
+                        <s-text variant="heading-sm" tone={isComplete ? "success" : "default"}>
                           {item.title}
                         </s-text>
                       </s-table-cell>
@@ -603,8 +672,7 @@ export default function OrderDetailPage() {
         </Card>
 
         <Text tone="subdued" alignment="center">
-          Dica: scanner físico (Bluetooth/USB) funciona como teclado — lê o código e
-          pressiona Enter.
+          Dica: scanner físico (Bluetooth/USB) funciona como teclado — lê o código e pressiona Enter.
         </Text>
 
         <div style={{ height: 96 }} />
@@ -649,8 +717,7 @@ export default function OrderDetailPage() {
       {/* S-MODAL CONFIRMAÇÃO IN_PROGRESS */}
       <s-modal id={MODAL_INPROGRESS_ID} heading="Confirmar">
         <s-paragraph>
-          Tens a certeza que queres marcar esta encomenda como{" "}
-          <strong>IN_PROGRESS</strong>?
+          Tens a certeza que queres marcar esta encomenda como <strong>IN_PROGRESS</strong>?
         </s-paragraph>
 
         <div className="modal-actions">
@@ -677,9 +744,8 @@ export default function OrderDetailPage() {
       {/* S-MODAL CONFIRMAÇÃO RESET PENDING */}
       <s-modal id={MODAL_RESET_ID} heading="Voltar a Pending">
         <s-paragraph>
-          Isto vai remover o estado{" "}
-          <strong>{String(pickingStatus).toUpperCase()}</strong> e colocar a encomenda
-          como <strong>PENDING</strong> na tua app. Continuas?
+          Isto vai remover o estado <strong>{String(pickingStatus).toUpperCase()}</strong> e colocar
+          a encomenda como <strong>PENDING</strong> na tua app. Continuas?
         </s-paragraph>
 
         <div className="modal-actions">
